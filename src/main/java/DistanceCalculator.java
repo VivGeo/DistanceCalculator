@@ -1,5 +1,6 @@
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.util.Scanner;
 import java.text.DecimalFormat;
@@ -15,10 +16,12 @@ public class DistanceCalculator {
 		
 		return  (d + m /60 + s /3600) * multiplier;
 	}
-	//Haversine formula, used to convert distance between two dd points, taken from rosettacode
-	static double haversine (double lat1,double lon1,double lat2,double lon2)
+
+    //Haversine formula, used to convert distance between two dd points, taken from Rosetta Code
+    static double haversine (double lat1,double lon1,double lat2,double lon2)
 	{
-		final double  R = 6372.8;
+        //Radius of earth in km
+        final double  R = 6372.8;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         lat1 = Math.toRadians(lat1);
@@ -28,7 +31,45 @@ public class DistanceCalculator {
         double c = 2 * Math.asin(Math.sqrt(a));
         return R * c;
 	}
-	public static void main (String args[])
+
+    static Document getCityPage(String city, Scanner sc) throws Exception {
+        String relHref, choice;
+        Document doc;
+        Elements places, check;
+        //Attempt connecting to the corresponding Wikipedia page
+        doc = Jsoup.connect("https://en.wikipedia.org/wiki/" + city.replace(' ', '_')).userAgent("Mozilla/5.0").timeout(0).get();
+        //Checking to see if "city" page is a disambiguation page (e.g. wikipedia.org/wiki/Markham)
+        check = doc.select(".mw-normal-catlinks li");
+        //if page falls under disambiguation category
+        if (check.text().contains("disambiguation")) {
+            //Find listed items that are cities
+            places = doc.select("li:contains(a city)");
+            if (places.size() > 0) {
+                //Output possible cities user may be referring to
+                System.out.println("Ambiguous choice. Select the number corresponding to city you are referring to:");
+                for (int i = 0; i < places.size(); i++) {
+                    System.out.println("[" + i + "]" + " " + places.get(i).text());
+                }
+                choice = sc.nextLine();
+                //If input is valid
+                if (choice.length() == 1 && Character.isDigit(choice.charAt(0)) && Integer.parseInt(choice) >= 0 && Integer.parseInt(choice) < places.size()) {
+                    //Extract relative link from li's child node
+                    relHref = places.get(Integer.parseInt(choice)).child(0).attr("href");
+                    //Connect to desired city page
+                    doc = Jsoup.connect("https://en.wikipedia.org" + relHref).userAgent("Mozilla/5.0").timeout(0).get();
+                }
+            }
+            //if input is invalid, end the program. TODO: modify this method to loop until input is valid
+            else {
+                System.out.println("Invalid choice");
+                sc.close();
+                throw new Exception();
+            }
+        }
+        return doc;
+    }
+
+    public static void main (String args[])
     {
         String city1, city2;
         //best naming convention :')
@@ -42,19 +83,21 @@ public class DistanceCalculator {
         Scanner sc = new Scanner(System.in);
         //For formatting numbers
         DecimalFormat df = new DecimalFormat("#.##");
-        //Getting user cities TODO: deal with less popular cities (e.g. Markham) that direct to a disambiguation page
-        System.out.println("Welcome to Distance Calculator.\nEnter city 1");
-        city1 = sc.nextLine();
-        System.out.println("Enter city 2");
-        city2 = sc.nextLine();
+        Document doc;
+        Elements el;
+        //Getting user cities and Wikipedia pages
         try {
-        //Try connecting to the city wikipedia page	
-        Document doc = Jsoup.connect("https://en.wikipedia.org/wiki/"+city1.replace(' ', '_')).userAgent("Mozilla/5.0").timeout(0).get();
-        //Try to locate the coordinates on the page 
-        Elements el = doc.select(".geo-dms span"); 
+
+            System.out.println("Welcome to Distance Calculator.\n\nEnter city 1");
+            city1 = sc.nextLine();
+            doc = getCityPage(city1, sc);
+            //Try to locate the coordinates on the page
+            el = doc.select(".geo-dms span");
         lat1 = el.get(0).text().split("\\W+");
         lon1 = el.get(1).text().split("\\W+");
-        doc = Jsoup.connect("https://en.wikipedia.org/wiki/"+city2.replace(' ', '_')).userAgent("Mozilla/5.0").timeout(0).get();
+            System.out.println("Enter city 2");
+            city2 = sc.nextLine();
+            doc = getCityPage(city2, sc);
         el = doc.select(".geo-dms span");        	
         lat2 = el.get(0).text().split("\\W+");
         lon2 = el.get(1).text().split("\\W+");
@@ -80,14 +123,14 @@ public class DistanceCalculator {
         	decDegrees2[1] = dmsTodd(Double.parseDouble(lon2[0]),Double.parseDouble(lon2[1]),Double.parseDouble(lon2[2]),lon2[3]);       	
         }
         //
-        System.out.println(city1 + ": " + df.format(decDegrees1[0]) + ", " + df.format(decDegrees1[1]) + "\n" + city2 + ": " + df.format(decDegrees2[0]) + ", " + df.format(decDegrees2[1]));
+            System.out.println(city1 + " coordinates: " + df.format(decDegrees1[0]) + ", " + df.format(decDegrees1[1]) + "\n" + city2 + " coordinates: " + df.format(decDegrees2[0]) + ", " + df.format(decDegrees2[1]));
         System.out.print("Distance between " + city1 + " and " + city2 + " is: " + df.format(haversine(decDegrees1[0],decDegrees1[1],decDegrees2[0],decDegrees2[1])) + " km.");
         }
         catch (Exception e) 
         {
-        	System.out.println("Error. prolly something to do with finding the city.");
-        	e.printStackTrace();
-        	
+
+            System.out.println("Error. Unable to find city.");
+            e.printStackTrace();
         }
         sc.close();
     }
