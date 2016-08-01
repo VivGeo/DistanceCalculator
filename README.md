@@ -7,6 +7,4 @@ For less well known cities or ambiguous choices (e.g. Markham), eliminating ambi
 
 If ambiguous choice is entered, a list of cities to choose from is given.
 
-WIP
-
 TODO: cleanup
