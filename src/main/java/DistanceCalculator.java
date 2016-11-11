@@ -16,7 +16,27 @@ public class DistanceCalculator {
 		
 		return  (d + m /60 + s /3600) * multiplier;
 	}
-
+//        	decDegrees1[0] = dmsTodd(Double.parseDouble(lat1[0]),Double.parseDouble(lat1[1]),0,lat1[2]);
+//	        decDegrees1[1] = dmsTodd(Double.parseDouble(lon1[0]),Double.parseDouble(lon1[1]),0,lon1[2]);
+	//Converting an array of dms values
+	static double[] dmsTodd(String[] lat, String[] lon)
+	{
+		double dLat, dLon;
+		double [] arr = new double[2];
+		if (lat.length == 3)
+		{
+			dLat = dmsTodd(Double.parseDouble(lat[0]),Double.parseDouble(lat[1]),0,lat[2]);
+			dLon = dmsTodd(Double.parseDouble(lon[0]),Double.parseDouble(lon[1]),0,lon[2]);
+		}
+		else
+		{
+			dLat = dmsTodd(Double.parseDouble(lat[0]),Double.parseDouble(lat[1]),Double.parseDouble(lat[2]),lat[3]);
+			dLon = dmsTodd(Double.parseDouble(lon[0]),Double.parseDouble(lon[1]),Double.parseDouble(lon[2]),lon[3]);		
+		}
+		arr[0] = dLat;
+		arr[1] = dLon;
+		return arr;
+	}
     //Haversine formula, used to convert distance between two dd points, taken from Rosetta Code
     static double haversine (double lat1,double lon1,double lat2,double lon2)
 	{
@@ -72,7 +92,6 @@ public class DistanceCalculator {
     public static void main (String args[])
     {
         String city1, city2;
-        //best naming convention :')
         //dms and dd coordinates for cities
         String lat1[];
         String lon1[];
@@ -87,7 +106,6 @@ public class DistanceCalculator {
         Elements el;
         //Getting user cities and Wikipedia pages
         try {
-
             System.out.println("Welcome to Distance Calculator.\n\nEnter city 1");
             city1 = sc.nextLine();
             doc = getCityPage(city1, sc);
@@ -101,35 +119,15 @@ public class DistanceCalculator {
         el = doc.select(".geo-dms span");        	
         lat2 = el.get(0).text().split("\\W+");
         lon2 = el.get(1).text().split("\\W+");
-        // if dms only contains dm (e.g. 46 42N vs. 46 42 30N)
-        if (lat1.length == 3)
-        {
-        	decDegrees1[0] = dmsTodd(Double.parseDouble(lat1[0]),Double.parseDouble(lat1[1]),0,lat1[2]);
-        	decDegrees1[1] = dmsTodd(Double.parseDouble(lon1[0]),Double.parseDouble(lon1[1]),0,lon1[2]);
-        }
-        else
-        {
-        	decDegrees1[0] = dmsTodd(Double.parseDouble(lat1[0]),Double.parseDouble(lat1[1]),Double.parseDouble(lat1[2]),lat1[3]);
-        	decDegrees1[1] = dmsTodd(Double.parseDouble(lon1[0]),Double.parseDouble(lon1[1]),Double.parseDouble(lon1[2]),lon1[3]);       	
-        }
-        if (lat2.length == 3)
-        {
-        	decDegrees2[0] = dmsTodd(Double.parseDouble(lat2[0]),Double.parseDouble(lat2[1]),0,lat2[2]);
-        	decDegrees2[1] = dmsTodd(Double.parseDouble(lon2[0]),Double.parseDouble(lon2[1]),0,lon2[2]);
-        }
-        else
-        {
-        	decDegrees2[0] = dmsTodd(Double.parseDouble(lat2[0]),Double.parseDouble(lat2[1]),Double.parseDouble(lat2[2]),lat2[3]);
-        	decDegrees2[1] = dmsTodd(Double.parseDouble(lon2[0]),Double.parseDouble(lon2[1]),Double.parseDouble(lon2[2]),lon2[3]);       	
-        }
-        //
-            System.out.println(city1 + " coordinates: " + df.format(decDegrees1[0]) + ", " + df.format(decDegrees1[1]) + "\n" + city2 + " coordinates: " + df.format(decDegrees2[0]) + ", " + df.format(decDegrees2[1]));
+        decDegrees1 = dmsTodd(lat1, lon1);
+        decDegrees2 = dmsTodd(lat2,lon2);
+        System.out.println(city1 + " coordinates: " + df.format(decDegrees1[0]) + ", " + df.format(decDegrees1[1]) + "\n" + city2 + " coordinates: " + df.format(decDegrees2[0]) + ", " + df.format(decDegrees2[1]));
         System.out.print("Distance between " + city1 + " and " + city2 + " is: " + df.format(haversine(decDegrees1[0],decDegrees1[1],decDegrees2[0],decDegrees2[1])) + " km.");
         }
         catch (Exception e) 
         {
 
-            System.out.println("Error. Unable to find city.");
+            System.out.println("Error. Unable to find city coordinates.");
             e.printStackTrace();
         }
         sc.close();
